@@ -3,7 +3,10 @@ const { ApolloServerPluginDrainHttpServer } = require("apollo-server-core");
 const express = require("express");
 const http = require("http");
 const path = require("path");
-
+const { createStore } = require("../utils");
+const LaunchAPI = require("../datasources/launch");
+const UserAPI = require("../datasources/user");
+const store = createStore();
 const typeDefs = require(path.resolve(__dirname, "../schemas/schema"));
 
 async function startApolloServer(typeDefs) {
@@ -13,6 +16,11 @@ async function startApolloServer(typeDefs) {
   const server = new ApolloServer({
     typeDefs,
     plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+    dataSources: () => ({
+      launchAPI: new LaunchAPI(),
+      userApi: new UserAPI({ store }),
+    }),
+    introspection: true,
   });
   await server.start();
   server.applyMiddleware({ app, path: "/" });
