@@ -2,3 +2,5 @@ node_modules
 schema.graphql
 dist
 nexus-typegen.ts
+prisma/dev.db
+prisma/dev.db-journal
