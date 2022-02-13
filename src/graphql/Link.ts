@@ -10,26 +10,13 @@ export const Link = objectType({
   },
 });
 
-let links: NexusGenObjects["Link"][] = [
-  {
-    id: 1,
-    url: "www.howtographql.com",
-    description: "Fullstack tutorial for GraphQL",
-  },
-  {
-    id: 2,
-    url: "graphql.org",
-    description: "GraphQL official website",
-  },
-];
-
 export const LinkQuery = extendType({
   type: "Query",
   definition(t) {
     t.nonNull.list.nonNull.field("feed", {
       type: "Link",
-      resolve() {
-        return links;
+      resolve(_, __, context) {
+        return context.prisma.link.findMany();
       },
     });
   },
@@ -41,11 +28,16 @@ export const SingleLink = extendType({
     t.field("findLink", {
       type: "Link",
       args: {
-        id: intArg(),
+        id: nonNull(intArg()),
       },
-      resolve(_, args, __, ___) {
+      resolve(_, args, context) {
         const { id } = args;
-        return links.find((item) => item.id === id!) || null;
+        const res = context.prisma.link.findFirst({
+          where: {
+            id,
+          },
+        });
+        return res;
       },
     });
   },
@@ -60,16 +52,15 @@ export const LinkMutation = extendType({
         description: nonNull(stringArg()),
         url: nonNull(stringArg()),
       },
-      resolve(_, args, __) {
+      resolve(_, args, context) {
         const { description, url } = args;
-        let idCount = links.length + 1;
-        const link = {
-          id: idCount,
-          description,
-          url,
-        };
-        links.push(link);
-        return link;
+        const newLink = context.prisma.link.create({
+          data: {
+            description,
+            url,
+          },
+        });
+        return newLink;
       },
     });
   },
@@ -85,15 +76,18 @@ export const UpdateLink = extendType({
         description: nonNull(stringArg()),
         url: nonNull(stringArg()),
       },
-      resolve(__, args) {
+      resolve(__, args, context) {
         const { id, description, url } = args;
-        const item = links.find((v) => v.id === id);
-        if (item) {
-          item.description = description;
-          item.url = url;
-          return item;
-        }
-        return null;
+        const item = context.prisma.link.update({
+          where: {
+            id,
+          },
+          data: {
+            description,
+            url,
+          },
+        });
+        return item;
       },
     });
   },
@@ -103,14 +97,19 @@ export const DeleteLink = extendType({
   type: "Mutation",
   definition(t) {
     t.nonNull.list.field("deleteLink", {
-      type: "Link",
+      type: "ID",
       args: {
         id: nonNull(intArg()),
       },
-      resolve(_, args, __) {
+      resolve(_, args, context) {
+        let allData;
         const { id } = args;
-        links = links.filter((item) => item.id !== id);
-        return links;
+        const item = context.prisma.link.delete({
+          where: {
+            id,
+          },
+        });
+        return item;
       },
     });
   },
